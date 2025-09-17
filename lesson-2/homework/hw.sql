@@ -1,79 +1,154 @@
+create database homework2
+go
+use homework2
+--Easy
 --1
-BULK  INSERT - перенос больших объемов данных из файлов .txt .csv
+CREATE TABLE Employees (
+    EmpID INT,
+    Name VARCHAR(50),
+    Salary DECIMAL(10,2)
+);
 
---2
-.txt - блокнот
-.csv - таблицы с разделителями в excel
-.xls - excel файл
-.xml - excel файл с поддержкой макросов
+--2 
+-- Одиночная вставка
+INSERT INTO Employees (EmpID, Name, Salary)
+VALUES (1, 'Ali', 6000.00);
+
+-- Вставка с указанием всех колонок
+INSERT INTO Employees VALUES (2, 'Aziza', 5500.00);
+
+-- Множественная вставка
+INSERT INTO Employees (EmpID, Name, Salary)
+VALUES 
+(3, 'Bek', 4000.00),
+(4, 'Dina', 3000.00);
 
 --3
-create TABLE Products (ProductID INT primary key, ProductName varchar(50), Price Decimal(10,2))
+UPDATE Employees
+SET Salary = 7000.00
+WHERE EmpID = 1;
 
 --4
-INSERT into Products (ProductID, ProductName, Price) VALUES
-(1, 'House', 500000.0),
-(2, 'Appartment', 100000.0),
-(3, 'Car', 25000.0);
-
+DELETE FROM Employees
+WHERE EmpID = 2;
 
 --5
-NULL - неизвестное значение
-NOT NULL - должно содержать какое-то значение
+Разница между DELETE, TRUNCATE, DROP
+
+DELETE — удаляет данные построчно, можно с условием (WHERE), структура таблицы остаётся.
+
+TRUNCATE — удаляет все строки сразу (без условий), быстрее, структура остаётся.
+
+DROP — полностью удаляет таблицу вместе с её структурой.
 
 --6
-ALTER TABLE Products
-ADD CONSTRAINT UQ_ProductName UNIQUE (ProductName);
+ALTER TABLE Employees
+ALTER COLUMN Name VARCHAR(100);
 
 --7
-select * FROM Products
+ALTER TABLE Employees
+ADD Department VARCHAR(50);
 
 --8
-ALTER TABLE Products
-ADD CategoryID INT;
+ALTER TABLE Employees
+ALTER COLUMN Salary FLOAT;
 
 --9
-CREATE TABLE Categories (
-    CategoryID INT PRIMARY KEY,
-    CategoryName VARCHAR(50) UNIQUE
+CREATE TABLE Departments (
+    DepartmentID INT PRIMARY KEY,
+    DepartmentName VARCHAR(50)
 );
 
 --10
-IDENTITY позволяет создавать уникальные последовательные значения для заполнения столбца ID 
+TRUNCATE TABLE Employees;
 
--- MEDIUM
+--Medium
 --11
-BULK INSERT Products
-FROM '/var/opt/mssql/import/text.txt'
-WITH (
-    FIELDTERMINATOR = ',',  
-    ROWTERMINATOR = '\r\n',   
-    FIRSTROW = 2
-);
+-- Создаём временную таблицу со списком отделов
+insert into Departments values (1, 'sharofiddin'), (2, 'jasur'), (3, 'nodir'), (4, 'javoxir'), (5, 'isnkander');
+select * from Departments
 
 --12
-ALTER TABLE Products
-ADD CONSTRAINT ForeignKey_Products_Categories
-FOREIGN KEY (CategoryID) REFERENCES Categories(CategoryID);
+UPDATE Employees
+SET Department = 'Management'
+WHERE Salary > 5000;
+
+select * from staffmembers
 
 --13
-primary key - может быть только один, значения должны быть уникальными, без NULL
-unique key - может быть несколько, значения должны быть уникальными, допускается 1 NULL
+TRUNCATE TABLE Employees;
 
 --14
-ALTER table Products
-ADD CONSTRAINT ForeignKey_Products_Price_Positive CHECK (price > 0);
+ALTER TABLE Employees
+DROP COLUMN Department;
 
 --15
-ALTER TABLE Products
-ADD stock INT NOT NULL DEFAULT (0);
+EXECUTE sp_rename 'Employees', 'StaffMembers';
 
 --16
-SELECT ProductID, ProductName, ISNULL(Price, 0) AS Price
+DROP TABLE Departments;
+
+--Hard
+--17
+CREATE TABLE Products (
+    ProductID INT PRIMARY KEY,
+    ProductName VARCHAR(100),
+    Category VARCHAR(50),
+    Price DECIMAL(10,2),
+    Manufacturer VARCHAR(50)
+);
+
+--18
+ALTER TABLE Products
+ADD CONSTRAINT CHK_Price CHECK (Price > 0);
+
+--19
+ALTER TABLE Products
+ADD StockQuantity INT DEFAULT 50;
+
+--20
+EXEC sp_rename 'Products.Category', 'ProductCategory', 'COLUMN';
+
+--21
+INSERT INTO Products (ProductID, ProductName, ProductCategory, Price, Manufacturer, StockQuantity)
+VALUES
+(1, 'Laptop', 'Electronics', 1200.00, 'Dell', 100),
+(2, 'Phone', 'Electronics', 800.00, 'Samsung', 200),
+(3, 'Tablet', 'Electronics', 600.00, 'Apple', 150),
+(4, 'Printer', 'Office', 300.00, 'HP', 50),
+(5, 'Router', 'Networking', 150.00, 'TP-Link', 70);
+
+--22
+SELECT * INTO Products_Backup
 FROM Products;
 
-UPDATE Products
-set Price = ISNULL(Price, 0);
+--23
+EXEC sp_rename 'Products', 'Inventory';
 
---17
-FOREIGN KEY - используется для ссылочной целостности между таблицам
+--24
+ALTER TABLE Inventory
+ALTER COLUMN Price FLOAT;
+
+--25
+-- Создаём новую таблицу с IDENTITY
+CREATE TABLE Inventory_New (
+    ProductCode INT IDENTITY(1000,5),
+    ProductID INT PRIMARY KEY,
+    ProductName VARCHAR(100),
+    ProductCategory VARCHAR(50),
+    Price FLOAT,
+    Manufacturer VARCHAR(50),
+    StockQuantity INT
+);
+
+-- Переносим данные
+INSERT INTO Inventory_New (ProductID, ProductName, ProductCategory, Price, Manufacturer, StockQuantity)
+SELECT ProductID, ProductName, ProductCategory, Price, Manufacturer, StockQuantity FROM Inventory;
+
+-- Удаляем старую таблицу и переименовываем новую
+DROP TABLE Inventory;
+EXEC sp_rename 'Inventory_New', 'Inventory';
+
+
+
+select * from Inventory
